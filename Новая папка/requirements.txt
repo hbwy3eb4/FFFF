@@ -1,0 +1,8 @@
+Django>=5.2
+psycopg2-binary>=2.9.0
+python-dotenv
+Pillow
+minio
+django-environ
+django-storages>=1.13.2
+boto3>=1.28.0

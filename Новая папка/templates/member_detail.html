@@ -1,0 +1,1364 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Карты семейных мест - Ваша семейная история</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      :root {
+        --primary: #4e73df;
+        --secondary: #858796;
+        --accent: #36b9cc;
+        --light: #f8f9fc;
+        --dark: #2e4374;
+      }
+
+      body {
+        padding-top: 80px;
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .navbar {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .member-header {
+        background: linear-gradient(
+            rgba(46, 67, 116, 0.8),
+            rgba(46, 67, 116, 0.8)
+          ),
+          url('https://source.unsplash.com/random/1920x300/?family,history')
+            no-repeat center center;
+        background-size: cover;
+        padding: 60px 0;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+      }
+
+      .edit-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 100;
+      }
+
+      .map-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        margin-bottom: 30px;
+        height: 100%;
+      }
+
+      .map-title {
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        color: var(--dark);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 8px;
+        background-color: #e9ecef;
+        margin-bottom: 20px;
+        position: relative;
+      }
+
+      .info-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        margin-bottom: 30px;
+        position: relative;
+      }
+
+      .editable {
+        cursor: pointer;
+        position: relative;
+        padding: 5px;
+        border-radius: 4px;
+        transition: all 0.3s;
+      }
+
+      .editable:hover {
+        background-color: #f0f8ff;
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+
+      .editable:after {
+        content: '\f044';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        color: var(--primary);
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 12px;
+      }
+
+      .editable:hover:after {
+        opacity: 1;
+      }
+
+      .btn-save {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        font-weight: 500;
+        transition: background-color 0.3s;
+        border-radius: 8px;
+      }
+
+      .btn-save:hover {
+        background-color: #3a56c4;
+      }
+
+      .comment-card {
+        transition: transform 0.2s;
+        margin-bottom: 15px;
+        border: none;
+        border-left: 3px solid var(--accent);
+      }
+
+      .comment-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .saved-address {
+        background-color: #f8f9fc;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        border-left: 3px solid var(--primary);
+      }
+
+      .saved-address p {
+        margin-bottom: 5px;
+      }
+
+      .address-icon {
+        font-size: 24px;
+        color: var(--primary);
+        margin-right: 10px;
+      }
+
+      footer {
+        background-color: var(--dark);
+        color: white;
+        margin-top: 40px;
+      }
+
+      .member-photo {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid white;
+        margin: -100px auto 20px;
+        position: relative;
+        background-color: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #777;
+        font-size: 14px;
+        text-align: center;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .member-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .form-section {
+        display: none;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+      }
+
+      .map-controls {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .marker-info {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        display: none;
+      }
+
+      .location-type {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .location-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .location-btn.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      .map-instruction {
+        background-color: #e9f7fe;
+        border-left: 4px solid var(--accent);
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 0 8px 8px 0;
+      }
+
+      .edit-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        width: 90%;
+        max-width: 500px;
+        display: none;
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        display: none;
+      }
+
+      .map-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-tree me-2"></i>Семейная Память
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="file://wsl.localhost/Ubuntu-24.04/home/student/mysite1/templates/index.html">Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Возможности</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Примеры</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Тарифы</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Контакты</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'profile' %}">Профиль</a></li>
+                                <li><a class="dropdown-item" href="#">Мои деревья</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Выйти</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item ms-2">
+                            <a class="btn btn-outline-light" href="{% url 'login' %}">Войти</a>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <a class="btn btn-primary" href="{% url 'registration' %}">Регистрация</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Заголовок члена семьи -->
+    <div class="member-header">
+      <div class="container text-center">
+        <div class="member-photo" id="photo-container">
+          <span id="photo-placeholder">Нажмите для загрузки фото</span>
+          <input
+            type="file"
+            id="photo-upload"
+            accept="image/*"
+            style="display: none"
+          />
+        </div>
+        <h1 id="member-name" class="editable" data-field="name">
+          Иван Иванович Петров
+        </h1>
+        <p class="lead" id="member-dates" class="editable" data-field="dates">
+          Род. 15.03.1925 - ум. 10.01.2003
+        </p>
+        <button class="btn btn-light edit-btn" id="edit-main-btn">
+          <i class="fas fa-edit"></i> Режим редактирования
+        </button>
+      </div>
+    </div>
+
+    <!-- Форма для редактирования данных родственника -->
+    <div class="container">
+      <div class="form-section" id="member-form">
+        <h3><i class="fas fa-user-edit me-2"></i>Редактирование информации</h3>
+        <form id="member-data-form">
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Имя</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="first-name"
+                  placeholder="Имя"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Фамилия</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="last-name"
+                  placeholder="Фамилия"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Отчество</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="patronymic"
+                  placeholder="Отчество"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Дата рождения</label>
+                <input type="date" class="form-control" id="birth-date" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Дата смерти (если применимо)</label>
+                <input type="date" class="form-control" id="death-date" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Профессия</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="profession"
+                  placeholder="Профессия"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Биография</label>
+            <textarea
+              class="form-control"
+              id="bio"
+              rows="4"
+              placeholder="Расскажите о вашем родственнике..."
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-save">
+            Сохранить информацию
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Попап для редактирования -->
+    <div class="overlay" id="edit-overlay"></div>
+    <div class="edit-popup" id="edit-popup">
+      <h4 id="edit-title">Редактировать поле</h4>
+      <div class="mb-3">
+        <label class="form-label">Значение</label>
+        <textarea class="form-control" id="edit-value" rows="3"></textarea>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" onclick="closeEditPopup()">
+          Отмена
+        </button>
+        <button class="btn btn-primary" onclick="saveEditedField()">
+          Сохранить
+        </button>
+      </div>
+    </div>
+
+     <!-- Основной контент -->
+    <div class="container mt-5">
+        <div class="hero-section text-center py-5 rounded-3 mb-4">
+            <h1 class="display-4 fw-bold text-white">Сохраните вашу семейную историю</h1>
+            <p class="lead text-white">Создайте цифровое древо семьи и сохраните воспоминания для будущих поколений</p>
+            <div class="mt-4">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'create_tree' %}" class="btn btn-light btn-lg px-4 me-3">
+                        <i class="fas fa-plus me-2"></i>Создать новое древо
+                    </a>
+                    <a href="{% url 'my_trees' %}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-tree me-2"></i>Мои деревья
+                    </a>
+                {% else %}
+                    <a href="{% url 'registration' %}" class="btn btn-light btn-lg px-4 me-3">
+                        Начать бесплатно
+                    </a>
+                    <a href="{% url 'features' %}" class="btn btn-outline-light btn-lg px-4">
+                        Узнать больше
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+         <!-- Блок с преимуществами -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="feature-card card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary text-white rounded-circle p-3 d-inline-block mb-3">
+                            <i class="fas fa-sitemap fa-2x"></i>
+                        </div>
+                        <h3 class="card-title">Создайте генеалогическое древо</h3>
+                        <p class="card-text">Визуализируйте связи между родственниками в понятном древовидном формате.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-success text-white rounded-circle p-3 d-inline-block mb-3">
+                            <i class="fas fa-map-marked-alt fa-2x"></i>
+                        </div>
+                        <h3 class="card-title">Карта семейных мест</h3>
+                        <p class="card-text">Отмечайте важные места на карте: места рождения, проживания, захоронения предков.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-info text-white rounded-circle p-3 d-inline-block mb-3">
+                            <i class="fas fa-images fa-2x"></i>
+                        </div>
+                        <h3 class="card-title">Архив фотографий</h3>
+                        <p class="card-text">Храните и систематизируйте семейные фотографии с привязкой к людям и событиям.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Карта -->
+        <div class="col-md-6">
+          <div class="map-container">
+            <div class="map-title">
+              <span
+                ><i class="fas fa-map-marked-alt me-2"></i>Карта семейных
+                мест</span
+              >
+              <button class="btn btn-sm btn-outline-primary" id="map-edit-btn">
+                <i class="fas fa-edit"></i> Редактировать
+              </button>
+            </div>
+
+            <div class="map-instruction">
+              <p><strong>Как использовать карту:</strong></p>
+              <ol>
+                <li>Выберите тип места (рождения или захоронения)</li>
+                <li>Нажмите на карту в нужном месте</li>
+                <li>Введите адрес и описание</li>
+                <li>Нажмите "Сохранить место"</li>
+              </ol>
+            </div>
+
+            <div class="location-type">
+              <div
+                class="location-btn active"
+                id="birth-btn"
+                onclick="setLocationType('birth')"
+              >
+                <i class="fas fa-birthday-cake"></i> Место рождения
+              </div>
+              <div
+                class="location-btn"
+                id="burial-btn"
+                onclick="setLocationType('burial')"
+              >
+                <i class="fas fa-monument"></i> Место захоронения
+              </div>
+            </div>
+
+            <div id="map-container">
+              <iframe
+                src="https://yandex.ru/map-widget/v1/?um=constructor%3A94745be5227b8f356f48b39134f8d37f3ece2933c527a76410c596a5a320de99&amp;source=constructor"
+                width="500"
+                height="400"
+                frameborder="0"
+              >
+              </iframe>
+            </div>
+
+            <div class="marker-info" id="marker-info">
+              <h5>Информация о месте</h5>
+              <div class="mb-3">
+                <label class="form-label">Адрес</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="location-address"
+                  placeholder="Введите адрес"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Описание</label>
+                <textarea
+                  class="form-control"
+                  id="location-description"
+                  rows="2"
+                  placeholder="Дополнительная информация"
+                ></textarea>
+              </div>
+              <button class="btn btn-save" onclick="saveLocation()">
+                Сохранить место
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Сохраненные места -->
+        <div class="col-md-6">
+          <div class="map-container">
+            <h3 class="map-title">
+              <i class="fas fa-bookmark me-2"></i>Сохраненные места
+            </h3>
+
+            <div
+              class="saved-location"
+              id="birth-location"
+              style="display: initial"
+            >
+              <h4><i class="fas fa-birthday-cake me-2"></i>Место рождения</h4>
+              <div class="saved-address">
+                <p id="saved-birth-address">Адрес не указан</p>
+                <p id="saved-birth-description" class="text-muted">
+                  Описание отсутствует
+                </p>
+                <button
+                  class="btn btn-sm btn-outline-primary mt-2"
+                  onclick="editLocation('birth')"
+                >
+                  Изменить
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="saved-location"
+              id="burial-location"
+              style="display: none"
+            >
+              <h4><i class="fas fa-monument me-2"></i>Место захоронения</h4>
+              <div class="saved-address">
+                <p id="saved-burial-address">Адрес не указан</p>
+                <p id="saved-burial-description" class="text-muted">
+                  Описание отсутствует
+                </p>
+                <button
+                  class="btn btn-sm btn-outline-primary mt-2"
+                  onclick="editLocation('burial')"
+                >
+                  Изменить
+                </button>
+              </div>
+            </div>
+
+            <div class="text-center p-4" id="no-locations">
+              <i class="fas fa-map-marker-alt fa-3x mb-3 text-muted"></i>
+              <p>Пока нет сохраненных мест</p>
+              <p class="text-muted small">
+                Нажмите на карту слева, чтобы добавить место
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Информация о члене семьи -->
+        <div class="col-md-8 mt-4">
+          <div class="info-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <h3>
+                <i class="fas fa-info-circle me-2"></i>Информация о члене семьи
+              </h3>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                onclick="toggleEditForm()"
+              >
+                <i class="fas fa-edit"></i> Редактировать
+              </button>
+            </div>
+            <div class="row mt-4" id="member-info">
+              <div class="col-md-6">
+                <p>
+                  <strong>Полное имя:</strong>
+                  <span
+                    id="info-full-name"
+                    class="editable"
+                    data-field="full-name"
+                    >Петров Иван Иванович</span
+                  >
+                </p>
+                <p>
+                  <strong>Дата рождения:</strong>
+                  <span
+                    id="info-birth-date"
+                    class="editable"
+                    data-field="birth-date"
+                    >15.03.1925</span
+                  >
+                </p>
+                <p>
+                  <strong>Дата смерти:</strong>
+                  <span
+                    id="info-death-date"
+                    class="editable"
+                    data-field="death-date"
+                    >10.01.2003</span
+                  >
+                </p>
+                <p>
+                  <strong>Профессия:</strong>
+                  <span
+                    id="info-profession"
+                    class="editable"
+                    data-field="profession"
+                    >Инженер-конструктор</span
+                  >
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p>
+                  <strong>Место рождения:</strong>
+                  <span
+                    id="info-birth-place"
+                    class="editable"
+                    data-field="birth-place"
+                    >Москва, СССР</span
+                  >
+                </p>
+                <p>
+                  <strong>Место захоронения:</strong>
+                  <span
+                    id="info-burial-place"
+                    class="editable"
+                    data-field="burial-place"
+                    >Санкт-Петербург, Волковское кладбище</span
+                  >
+                </p>
+                <p>
+                  <strong>Семейное положение:</strong>
+                  <span id="info-marital" class="editable" data-field="marital"
+                    >Женат</span
+                  >
+                </p>
+                <p>
+                  <strong>Дети:</strong>
+                  <span
+                    id="info-children"
+                    class="editable"
+                    data-field="children"
+                    >2 сына, 1 дочь</span
+                  >
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5>Биография</h5>
+              </div>
+              <p id="info-bio" class="editable" data-field="bio">
+                Иван Иванович Петров родился в Москве в 1925 году. Участник
+                Великой Отечественной войны, награжден медалями "За отвагу" и
+                "За боевые заслуги". После войны окончил МВТУ им. Баумана,
+                работал инженером-конструктором на оборонном предприятии. В 1970
+                году переехал в Ленинград, где продолжал работать до выхода на
+                пенсию в 1985 году.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Комментарии -->
+        <div class="col-md-4 mt-4">
+          <div class="info-card">
+            <h3><i class="fas fa-comments me-2"></i>Комментарии и заметки</h3>
+
+            <form class="mt-4" id="comment-form">
+              <div class="mb-3">
+                <label class="form-label">Ваш комментарий</label>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  id="comment-text"
+                  placeholder="Добавьте комментарий или заметку..."
+                ></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Ваше имя</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="comment-author"
+                  placeholder="Представьтесь"
+                />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Добавить комментарий
+              </button>
+            </form>
+
+            <div class="mt-4" id="comments-container">
+              <div class="comment-card card mb-3">
+                <div class="card-body">
+                  <p>
+                    Здесь вы можете оставлять заметки и воспоминания о вашем
+                    родственнике
+                  </p>
+                  <small class="text-muted">Система, сегодня</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Футер -->
+    <footer class="py-5">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-4 mb-4 mb-lg-0">
+            <h4 class="mb-4">
+              <i class="fas fa-tree me-2"></i>Семейная Память
+            </h4>
+            <p>
+              Цифровой архив для сохранения вашей семейной истории и построения
+              генеалогического древа.
+            </p>
+            <div class="d-flex gap-3 mt-4">
+              <a href="https://vk.com/" class="text-white"
+                ><i class="fab fa-vk fa-lg"></i
+              ></a>
+              <a href="https://t.me/" class="text-white"
+                ><i class="fab fa-telegram fa-lg"></i
+              ></a>
+              <a href="https://www.youtube.com/" class="text-white"
+                ><i class="fab fa-youtube fa-lg"></i
+              ></a>
+              <a href="#" class="text-white"
+                ><i class="fab fa-odnoklassniki fa-lg"></i
+              ></a>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+            <h5 class="mb-4">О сервисе</h5>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none"
+                  >Возможности</a
+                >
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none">Примеры</a>
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none">Тарифы</a>
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none">Блог</a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+            <h5 class="mb-4">Помощь</h5>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none"
+                  >Вопросы и ответы</a
+                >
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none"
+                  >Инструкции</a
+                >
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none">Форум</a>
+              </li>
+              <li class="mb-2">
+                <a href="#" class="text-white text-decoration-none">Контакты</a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="col-lg-4 col-md-4">
+            <h5 class="mb-4">Подписка на новости</h5>
+            <p>
+              Получайте советы по составлению семейной истории и узнавайте о
+              новых возможностях сервиса
+            </p>
+            <div class="input-group mb-3">
+              <input
+                type="email"
+                class="form-control"
+                placeholder="Ваш email"
+              />
+              <button class="btn btn-primary" type="button">Подписаться</button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-5 border-light" />
+
+        <div class="text-center">
+          <p class="mb-0">&copy; 2023 Семейная Память. Все права защищены.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Текущий тип места (birth или burial)
+      let currentLocationType = 'birth'
+      // Текущее редактируемое поле
+      let currentEditField = null
+      // Режим редактирования
+      let editMode = false
+      // Сохраненные данные
+      let savedData = {
+        birth: null,
+        burial: null,
+        member: null,
+      }
+
+      // Установка типа места
+      function setLocationType(type) {
+        currentLocationType = type
+        document.getElementById('birth-btn').classList.remove('active')
+        document.getElementById('burial-btn').classList.remove('active')
+        document.getElementById(`${type}-btn`).classList.add('active')
+
+        // Обновляем карту
+        updateMap()
+      }
+
+      // Обновление карты в зависимости от типа
+      function updateMap() {
+        const mapFrame = document.getElementById('map-frame')
+        if (currentLocationType === 'birth') {
+          mapFrame.src =
+            'https://yandex.ru/map-widget/v1/?um=constructor%3A35f9b2bcfb9e317894421878d2e27dcc8ed0901d79eb28aafbbaf4fef8d1ba96&amp;source=constructor'
+        } else {
+          mapFrame.src =
+            'https://yandex.ru/map-widget/v1/?um=constructor%3A94745be5227b8f356f48b39134f8d37f3ece2933c527a76410c596a5a320de99&amp;source=constructor'
+        }
+      }
+
+      // Сохранение места
+      function saveLocation() {
+        const address = document.getElementById('location-address').value
+        const description = document.getElementById(
+          'location-description'
+        ).value
+
+        if (!address) {
+          alert('Пожалуйста, введите адрес')
+          return
+        }
+
+        // Сохраняем данные
+        savedData[currentLocationType] = {
+          address: address,
+          description: description,
+        }
+
+        // Обновляем отображение
+        updateLocationsDisplay()
+        updateMemberInfoDisplay()
+
+        // Скрываем форму
+        document.getElementById('marker-info').style.display = 'none'
+        alert('Место успешно сохранено!')
+
+        // Сохраняем в localStorage
+        localStorage.setItem('family_data', JSON.stringify(savedData))
+      }
+
+      // Обновление отображения сохраненных мест
+      function updateLocationsDisplay() {
+        // Место рождения
+        if (savedData.birth) {
+          document.getElementById('birth-location').style.display = 'block'
+          document.getElementById('saved-birth-address').textContent =
+            savedData.birth.address
+          document.getElementById('saved-birth-description').textContent =
+            savedData.birth.description || 'Описание отсутствует'
+        } else {
+          document.getElementById('birth-location').style.display = 'none'
+        }
+
+        // Место захоронения
+        if (savedData.burial) {
+          document.getElementById('burial-location').style.display = 'block'
+          document.getElementById('saved-burial-address').textContent =
+            savedData.burial.address
+          document.getElementById('saved-burial-description').textContent =
+            savedData.burial.description || 'Описание отсутствует'
+        } else {
+          document.getElementById('burial-location').style.display = 'none'
+        }
+
+        // Показываем или скрываем сообщение об отсутствии мест
+        const hasLocations = savedData.birth || savedData.burial
+        document.getElementById('no-locations').style.display = hasLocations
+          ? 'none'
+          : 'block'
+      }
+
+      // Обновление информации о члене семьи
+      function updateMemberInfoDisplay() {
+        if (savedData.birth) {
+          document.getElementById('info-birth-place').textContent =
+            savedData.birth.address
+        }
+        if (savedData.burial) {
+          document.getElementById('info-burial-place').textContent =
+            savedData.burial.address
+        }
+      }
+
+      // Редактирование места
+      function editLocation(type) {
+        setLocationType(type)
+        if (savedData[type]) {
+          document.getElementById('marker-info').style.display = 'block'
+          document.getElementById('location-address').value =
+            savedData[type].address
+          document.getElementById('location-description').value =
+            savedData[type].description || ''
+        }
+      }
+
+      // Открытие попапа редактирования
+      function openEditPopup(fieldId, title) {
+        currentEditField = fieldId
+        document.getElementById(
+          'edit-title'
+        ).textContent = `Редактировать: ${title}`
+
+        // Получаем текущее значение
+        const field = document.getElementById(fieldId)
+        document.getElementById('edit-value').value = field.textContent
+
+        // Показываем попап
+        document.getElementById('edit-overlay').style.display = 'block'
+        document.getElementById('edit-popup').style.display = 'block'
+      }
+
+      // Закрытие попапа
+      function closeEditPopup() {
+        document.getElementById('edit-overlay').style.display = 'none'
+        document.getElementById('edit-popup').style.display = 'none'
+      }
+
+      // Сохранение изменений
+      function saveEditedField() {
+        const newValue = document.getElementById('edit-value').value
+        const field = document.getElementById(currentEditField)
+
+        // Обновляем значение
+        field.textContent = newValue
+
+        // Сохраняем в данных
+        const fieldName = field.dataset.field
+        if (!savedData.member) savedData.member = {}
+        savedData.member[fieldName] = newValue
+
+        // Для имени в шапке
+        if (currentEditField === 'info-full-name') {
+          document.getElementById('member-name').textContent = newValue
+        }
+
+        // Сохраняем в localStorage
+        localStorage.setItem('family_data', JSON.stringify(savedData))
+
+        closeEditPopup()
+      }
+
+      // Переключение режима редактирования
+      function toggleEditMode() {
+        editMode = !editMode
+        const editBtn = document.getElementById('edit-main-btn')
+
+        if (editMode) {
+          editBtn.innerHTML =
+            '<i class="fas fa-save"></i> Завершить редактирование'
+          editBtn.classList.remove('btn-light')
+          editBtn.classList.add('btn-primary')
+
+          // Показываем кнопку редактирования карты
+          document.getElementById('map-edit-btn').style.display = 'inline-block'
+        } else {
+          editBtn.innerHTML = '<i class="fas fa-edit"></i> Режим редактирования'
+          editBtn.classList.remove('btn-primary')
+          editBtn.classList.add('btn-light')
+
+          // Скрываем кнопку редактирования карты
+          document.getElementById('map-edit-btn').style.display = 'none'
+          document.getElementById('marker-info').style.display = 'none'
+        }
+      }
+
+      // Переключение формы редактирования
+      function toggleEditForm() {
+        const form = document.getElementById('member-form')
+        form.style.display = form.style.display === 'block' ? 'none' : 'block'
+
+        // Если форма открывается, заполняем ее данными
+        if (form.style.display === 'block' && savedData.member) {
+          document.getElementById('first-name').value =
+            savedData.member.firstName || ''
+          document.getElementById('last-name').value =
+            savedData.member.lastName || ''
+          document.getElementById('patronymic').value =
+            savedData.member.patronymic || ''
+          document.getElementById('profession').value =
+            savedData.member.profession || ''
+          document.getElementById('bio').value = savedData.member.bio || ''
+
+          // Даты
+          if (savedData.member.birthDate) {
+            const [day, month, year] = savedData.member.birthDate.split('.')
+            document.getElementById(
+              'birth-date'
+            ).value = `${year}-${month.padStart(2, '0')}-${day.padStart(
+              2,
+              '0'
+            )}`
+          }
+
+          if (savedData.member.deathDate) {
+            const [day, month, year] = savedData.member.deathDate.split('.')
+            document.getElementById(
+              'death-date'
+            ).value = `${year}-${month.padStart(2, '0')}-${day.padStart(
+              2,
+              '0'
+            )}`
+          }
+        }
+      }
+
+      // Сохранение данных о родственнике
+      function saveMemberData(event) {
+        event.preventDefault()
+
+        // Собираем данные
+        const memberData = {
+          firstName: document.getElementById('first-name').value,
+          lastName: document.getElementById('last-name').value,
+          patronymic: document.getElementById('patronymic').value,
+          profession: document.getElementById('profession').value,
+          bio: document.getElementById('bio').value,
+          birthDate: document.getElementById('birth-date').value,
+          deathDate: document.getElementById('death-date').value,
+        }
+
+        // Проверка обязательных полей
+        if (!memberData.firstName || !memberData.lastName) {
+          alert('Пожалуйста, введите имя и фамилию')
+          return
+        }
+
+        // Форматирование дат для отображения
+        if (memberData.birthDate) {
+          const date = new Date(memberData.birthDate)
+          memberData.birthDate = date.toLocaleDateString('ru-RU')
+        }
+
+        if (memberData.deathDate) {
+          const date = new Date(memberData.deathDate)
+          memberData.deathDate = date.toLocaleDateString('ru-RU')
+        }
+
+        // Обновление отображения
+        document.getElementById('member-name').textContent = `${
+          memberData.lastName
+        } ${memberData.firstName} ${memberData.patronymic || ''}`
+
+        document.getElementById('member-dates').textContent = `${
+          memberData.birthDate ? 'Род. ' + memberData.birthDate : ''
+        } ${memberData.deathDate ? '- ум. ' + memberData.deathDate : ''}`
+
+        document.getElementById('info-full-name').textContent = `${
+          memberData.lastName
+        } ${memberData.firstName} ${memberData.patronymic || ''}`
+
+        document.getElementById('info-birth-date').textContent =
+          memberData.birthDate || ''
+
+        document.getElementById('info-death-date').textContent =
+          memberData.deathDate || ''
+
+        document.getElementById('info-profession').textContent =
+          memberData.profession || ''
+
+        document.getElementById('info-bio').textContent = memberData.bio || ''
+
+        // Сохраняем в общий объект
+        savedData.member = memberData
+        localStorage.setItem('family_data', JSON.stringify(savedData))
+
+        // Закрываем форму
+        document.getElementById('member-form').style.display = 'none'
+        alert('Данные успешно сохранены!')
+      }
+
+      // Загрузка фотографии
+      function initPhotoUpload() {
+        const photoContainer = document.getElementById('photo-container')
+        const photoUpload = document.getElementById('photo-upload')
+
+        photoContainer.addEventListener('click', function () {
+          photoUpload.click()
+        })
+
+        photoUpload.addEventListener('change', function (e) {
+          if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader()
+
+            reader.onload = function (event) {
+              // Создаем или обновляем изображение
+              let img = photoContainer.querySelector('img')
+              if (!img) {
+                img = document.createElement('img')
+                photoContainer.appendChild(img)
+              }
+
+              img.src = event.target.result
+              document.getElementById('photo-placeholder').style.display =
+                'none'
+
+              // Сохраняем в localStorage
+              savedData.photo = event.target.result
+              localStorage.setItem('family_data', JSON.stringify(savedData))
+            }
+
+            reader.readAsDataURL(e.target.files[0])
+          }
+        })
+      }
+
+      // Восстановление фото из localStorage
+      function restorePhoto() {
+        if (savedData.photo) {
+          const img = document.createElement('img')
+          img.src = savedData.photo
+          document.getElementById('photo-container').appendChild(img)
+          document.getElementById('photo-placeholder').style.display = 'none'
+        }
+      }
+
+      // Добавление комментария
+      function addComment(event) {
+        event.preventDefault()
+
+        const commentText = document.getElementById('comment-text').value
+        const author = document.getElementById('comment-author').value
+
+        if (!commentText || !author) {
+          alert('Пожалуйста, заполните все поля')
+          return
+        }
+
+        const now = new Date()
+        const dateString = `${now.getDate().toString().padStart(2, '0')}.${(
+          now.getMonth() + 1
+        )
+          .toString()
+          .padStart(2, '0')}.${now.getFullYear()}`
+
+        const commentHTML = `
+          <div class="comment-card card mb-3">
+            <div class="card-body">
+              <p>${commentText}</p>
+              <small class="text-muted">${author}, ${dateString}</small>
+            </div>
+          </div>
+        `
+
+        document
+          .getElementById('comments-container')
+          .insertAdjacentHTML('afterbegin', commentHTML)
+
+        // Очищаем форму
+        document.getElementById('comment-text').value = ''
+        document.getElementById('comment-author').value = ''
+      }
+
+      // Восстановление данных из localStorage
+      function restoreFromLocalStorage() {
+        const saved = localStorage.getItem('family_data')
+        if (saved) {
+          savedData = JSON.parse(saved)
+
+          // Восстанавливаем данные о члене семьи
+          if (savedData.member) {
+            document.getElementById('member-name').textContent = `${
+              savedData.member.lastName
+            } ${savedData.member.firstName} ${
+              savedData.member.patronymic || ''
+            }`
+
+            document.getElementById('member-dates').textContent = `${
+              savedData.member.birthDate
+                ? 'Род. ' + savedData.member.birthDate
+                : ''
+            } ${
+              savedData.member.deathDate
+                ? '- ум. ' + savedData.member.deathDate
+                : ''
+            }`
+
+            document.getElementById('info-full-name').textContent = `${
+              savedData.member.lastName
+            } ${savedData.member.firstName} ${
+              savedData.member.patronymic || ''
+            }`
+
+            document.getElementById('info-birth-date').textContent =
+              savedData.member.birthDate || ''
+
+            document.getElementById('info-death-date').textContent =
+              savedData.member.deathDate || ''
+
+            document.getElementById('info-profession').textContent =
+              savedData.member.profession || ''
+
+            document.getElementById('info-bio').textContent =
+              savedData.member.bio || ''
+          }
+
+          // Восстанавливаем места
+          updateLocationsDisplay()
+          updateMemberInfoDisplay()
+        }
+      }
+
+      // Инициализация при загрузке страницы
+      document.addEventListener('DOMContentLoaded', function () {
+        // Инициализация загрузки фото
+        initPhotoUpload()
+
+        // Восстановление данных
+        restoreFromLocalStorage()
+        restorePhoto()
+
+        // Назначаем обработчики
+        document
+          .getElementById('edit-main-btn')
+          .addEventListener('click', toggleEditMode)
+        document
+          .getElementById('member-data-form')
+          .addEventListener('submit', saveMemberData)
+        document
+          .getElementById('comment-form')
+          .addEventListener('submit', addComment)
+
+        // Обработчики для редактируемых полей
+        document.querySelectorAll('.editable').forEach((el) => {
+          el.addEventListener('click', function () {
+            if (!editMode) return
+
+            const title = this.parentElement
+              .querySelector('strong')
+              .textContent.replace(':', '')
+            openEditPopup(this.id, title)
+          })
+        })
+
+        // Обработчик кнопки редактирования карты
+        document
+          .getElementById('map-edit-btn')
+          .addEventListener('click', function () {
+            document.getElementById('marker-info').style.display = 'block'
+          })
+      })
+    </script>
+  </body>
+</html>

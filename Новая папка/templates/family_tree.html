@@ -1,0 +1,984 @@
+{% extends 'base.html' %}
+{% block title %}Семейное древо{% endblock %}
+{% block content %}
+    <style>
+      .map-container {
+  background: #fff; 
+        border-radius: 10px;
+  padding: 16px; 
+  margin-bottom: 18px; 
+  box-shadow: 0 2px 8px #e0e0e0; 
+}
+.saved-location { 
+  font-size: 0.875rem; 
+  background: #f8f9fc; 
+        border-radius: 8px;
+  padding: 8px 12px; 
+}
+.node-card {
+        transition: transform 0.2s;
+}
+.node-card:hover {
+  transform: translateY(-5px);
+      }
+    </style>
+<div class="container py-4">
+  <h1 class="mb-4 text-center">Моё семейное древо</h1>
+  <div class="row">
+    <div class="col-lg-9">
+      <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-success" onclick="createNewBranch()">
+          <i class="fas fa-code-branch me-1"></i>Создать новую ветвь
+        </button>
+        <button class="btn btn-primary" onclick="openAddModal(selectedNodePath)">
+          <i class="fas fa-user-plus me-1"></i>Добавить члена семьи
+        </button>
+        <button class="btn btn-warning" onclick="openMergeModal()">
+          <i class="fas fa-link me-1"></i>Объединить ветви
+        </button>
+        </div>
+      <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="Поиск по имени или фамилии..." oninput="searchTree()">
+      </div>
+      <div id="tree-container" style="overflow-x:auto; width:100%; min-height:600px;">
+        <div id="tree"></div>
+        </div>
+      <div class="text-end mt-3">
+        <button onclick="saveTree()" class="btn btn-success">Сохранить изменения</button>
+        <a href="/profile/" class="btn btn-outline-secondary ms-2">Профиль</a>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div id="infoPanel" class="info-card" style="display:none;"></div>
+      </div>
+    </div>
+</div>
+<!-- Модальное окно для добавления/редактирования члена семьи -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addMemberModalLabel">Добавить/Редактировать члена семьи</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="memberForm">
+          <input type="hidden" id="editNodePath">
+          <input type="hidden" id="addToParentPath">
+          <div class="mb-3">
+            <label for="memberName" class="form-label">Имя</label>
+            <input type="text" class="form-control" id="memberName" placeholder="Введите имя" required>
+          </div>
+          <div class="mb-3">
+            <label for="memberGender" class="form-label">Пол</label>
+            <select class="form-select" id="memberGender" required>
+              <option value="">Не выбран</option>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="memberRelation" class="form-label">Связь (ярлык)</label>
+            <input type="text" class="form-control" id="memberRelation" placeholder="Например: сын, дочь, отец...">
+          </div>
+          <div class="mb-3">
+            <label for="memberBirth" class="form-label">Дата рождения</label>
+            <input type="date" class="form-control" id="memberBirth">
+          </div>
+          <div class="mb-3">
+            <label for="memberProfession" class="form-label">Профессия</label>
+            <input type="text" class="form-control" id="memberProfession">
+          </div>
+          <div class="mb-3">
+            <label for="memberBio" class="form-label">Биография</label>
+            <textarea class="form-control" id="memberBio" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="memberHeight" class="form-label">Рост (см)</label>
+            <input type="number" class="form-control" id="memberHeight" min="40" max="250">
+          </div>
+          <div class="mb-3">
+            <label for="memberEyeColor" class="form-label">Цвет глаз</label>
+            <select class="form-select" id="memberEyeColor">
+              <option value="">Не выбрано</option>
+              <option value="карий">Карий</option>
+              <option value="голубой">Голубой</option>
+              <option value="зелёный">Зелёный</option>
+              <option value="серый">Серый</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="memberBlood" class="form-label">Группа крови</label>
+            <select class="form-select" id="memberBlood">
+              <option value="">Не выбрано</option>
+              <option value="I">I</option>
+              <option value="II">II</option>
+              <option value="III">III</option>
+              <option value="IV">IV</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="memberDiseases" class="form-label">Заболевания (через запятую)</label>
+            <input type="text" class="form-control" id="memberDiseases" placeholder="Например: диабет, астма">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Сохранить</button>
+        </form>
+      </div>
+    </div>
+            </div>
+              </div>
+<!-- Модальное окно для объединения ветвей -->
+<div class="modal fade" id="mergeBranchesModal" tabindex="-1" aria-labelledby="mergeBranchesModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mergeBranchesModalLabel">Объединить ветви</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+      <div class="modal-body">
+        <form id="mergeForm">
+          <div class="mb-3">
+            <label class="form-label">Выберите первого основателя</label>
+            <select class="form-select" id="mergeMember1">
+              ${branches.map((b,i)=>`<option value='${i}'>${b.name}</option>`).join('')}
+            </select>
+            </div>
+              <div class="mb-3">
+            <label class="form-label">Выберите второго основателя</label>
+            <select class="form-select" id="mergeMember2">
+              ${branches.map((b,i)=>`<option value='${i}'>${b.name}</option>`).join('')}
+            </select>
+              </div>
+              <div class="mb-3">
+            <label class="form-label">Тип связи</label>
+            <select class="form-select" id="mergeType">
+              <option value="spouse">Супруги</option>
+              <option value="parent">Родитель/ребёнок</option>
+            </select>
+              </div>
+          <button type="submit" class="btn btn-warning w-100">Объединить</button>
+        </form>
+            </div>
+          </div>
+        </div>
+              </div>
+<!-- Модальное окно для создания новой ветви -->
+<div class="modal fade" id="newBranchModal" tabindex="-1" aria-labelledby="newBranchModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newBranchModalLabel">Создать новую ветвь</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+      <div class="modal-body">
+        <form id="newBranchForm">
+              <div class="mb-3">
+            <label for="newBranchName" class="form-label">Имя основателя</label>
+            <input type="text" class="form-control" id="newBranchName" required>
+              </div>
+              <div class="mb-3">
+            <label for="newBranchGender" class="form-label">Пол</label>
+            <select class="form-select" id="newBranchGender" required>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+              </div>
+          <button type="submit" class="btn btn-success w-100">Создать ветвь</button>
+            </form>
+                </div>
+              </div>
+            </div>
+          </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// --- Полный JS-код семейного древа ---
+
+// Упрощённая функция для работы с куками
+function getCookie(name) {
+  const cookies = Object.fromEntries(
+    document.cookie.split(';').map(c => c.trim().split('='))
+  );
+  return cookies[name];
+}
+
+let branches = [];
+let selectedNodePath = null;
+
+// Загрузка дерева с сервера
+async function loadTree() {
+  const resp = await fetch('/api/family-tree/');
+  let data = await resp.json();
+  if (!Array.isArray(data)) {
+    data = [data];
+  }
+  branches = data;
+  if (!branches.length || !branches[0] || !branches[0].name) {
+    addBranchWithPhoto('Основатель', '');
+    saveTree();
+    console.log('Автоматически создана первая ветвь');
+  } else {
+    renderAllBranches();
+    console.log('renderAllBranches called', branches);
+  }
+}
+
+async function saveTree() {
+  try {
+    const resp = await fetch('/api/family-tree/edit/', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(branches)
+    });
+    if (resp.ok) {
+      showToast('Данные успешно сохранены!', 'success');
+    } else {
+      throw new Error('Ошибка сохранения');
+    }
+  } catch (error) {
+    showToast('Ошибка при сохранении: ' + error.message, 'danger');
+  }
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-white bg-${type} border-0`;
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">${message}</div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>`;
+  document.body.appendChild(toast);
+  new bootstrap.Toast(toast, {delay: 3000}).show();
+  setTimeout(() => toast.remove(), 3500);
+}
+
+function searchTree() {
+  const val = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!val) {
+    d3.selectAll('rect').attr('stroke', null);
+    return;
+  }
+  d3.selectAll('g').each(function(d) {
+    const el = d3.select(this);
+    const name = (d.data.name || '').toLowerCase();
+    el.select('rect').attr('stroke', name.includes(val) ? '#e63946' : null);
+  });
+}
+
+function renderAllBranches() {
+  const treeDiv = document.getElementById('tree');
+  treeDiv.innerHTML = '';
+  branches.forEach((branch, idx) => {
+    const div = document.createElement('div');
+    div.id = 'tree_branch_' + idx;
+    div.style.marginBottom = '40px';
+    treeDiv.appendChild(div);
+    renderTree(branch, div.id, idx);
+  });
+}
+
+function renderTree(data, containerId, branchIdx) {
+  d3.select('#'+containerId).html('');
+  const d3root = d3.hierarchy(data);
+  const width = 1800, height = 1000;
+  const svg = d3.select('#'+containerId).append('svg')
+    .attr('width', width)
+    .attr('height', height);
+  const g = svg.append('g');
+  svg.call(d3.zoom()
+    .scaleExtent([0.2, 2])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+    })
+  );
+  const minSepX = 260;
+  const minSepY = 180;
+  const treeLayout = d3.tree().nodeSize([minSepX, minSepY]);
+  treeLayout(d3root);
+
+  // --- Визуализация связей ---
+  g.selectAll('path.link')
+    .data(d3root.links())
+    .enter()
+    .append('path')
+    .attr('class', 'link')
+    .attr('fill', 'none')
+    .attr('stroke', '#b0b0b0')
+    .attr('stroke-width', 2)
+    .attr('d', d3.linkVertical()
+      .x(d => (d.data.offset ? d.x + d.data.offset[0] : d.x))
+      .y(d => (d.data.offset ? d.y + d.data.offset[1] : d.y))
+    );
+
+  // --- Визуализация узлов ---
+  const node = g.selectAll('g.node')
+    .data(d3root.descendants())
+    .enter()
+    .append('g')
+    .attr('class', 'node')
+    .attr('transform', d => `translate(${(d.data.offset ? d.x + d.data.offset[0] : d.x)},${(d.data.offset ? d.y + d.data.offset[1] : d.y)})`)
+    .call(d3.drag()
+      .on('start', function(event, d) {
+        d3.select(this).raise().attr('stroke', 'black');
+      })
+      .on('drag', function(event, d) {
+        d.data.offset = d.data.offset || [0,0];
+        d.data.offset[0] += event.dx;
+        d.data.offset[1] += event.dy;
+        d3.select(this).attr('transform', `translate(${d.x + d.data.offset[0]},${d.y + d.data.offset[1]})`);
+        // Перерисовать связи
+        g.selectAll('path.link').attr('d', d3.linkVertical()
+          .x(d => (d.data.offset ? d.x + d.data.offset[0] : d.x))
+          .y(d => (d.data.offset ? d.y + d.data.offset[1] : d.y))
+        );
+      })
+      .on('end', function(event, d) {
+        d3.select(this).attr('stroke', null);
+      })
+    );
+
+  // Основная карточка
+  node.append('rect')
+    .attr('x', -70)
+    .attr('y', -50)
+    .attr('width', 140)
+    .attr('height', 100)
+    .attr('rx', 18)
+    .attr('fill', '#fff')
+    .attr('stroke', '#4e73df')
+    .attr('stroke-width', 3)
+    .attr('class', 'node-card');
+  node.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', 0)
+    .attr('font-size', 15)
+    .attr('font-weight', 'bold')
+    .text(d => d.data.name);
+  node.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', 18)
+    .attr('font-size', 12)
+    .attr('fill', '#888')
+    .text(d => d.data.birth ? `р. ${d.data.birth}` : '');
+
+  // Кнопка добавить супругу/супруга:
+  node.each(function(d) {
+    if (!d.data.spouse) {
+      d3.select(this).append('foreignObject')
+        .attr('x', -60)
+        .attr('y', 40)
+        .attr('width', 120)
+        .attr('height', 40)
+        .html(`<button class='btn btn-outline-primary btn-sm w-100' onclick='addSpouseModal(event, "${getNodePath(d)}")'>Добавить супругу/супруга</button>`);
+    } else {
+      // Если есть супруг/супруга — рисуем две карточки: основного персонажа справа, супруга слева
+      const spouseOffset = 100; // смещение влево/вправо от центра
+      // Перемещаем основного персонажа вправо
+      d3.select(this).attr('transform', `translate(${d.x + spouseOffset},${d.y})`);
+      // Рисуем карточку супруга слева
+      const group = d3.select(this.parentNode).append('g')
+        .attr('class', 'node spouse-node')
+        .attr('transform', `translate(${d.x - spouseOffset},${d.y})`)
+        .on('click', function(event) {
+          event.stopPropagation();
+          showSpouseInfo(d, getNodePath(d), branchIdx);
+        });
+      group.append('rect')
+        .attr('x', -70)
+        .attr('y', -50)
+        .attr('width', 140)
+        .attr('height', 100)
+        .attr('rx', 18)
+        .attr('fill', '#fff')
+        .attr('stroke', '#e07a5f')
+        .attr('stroke-width', 3)
+        .attr('class', 'node-card');
+      group.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('y', 0)
+        .attr('font-size', 15)
+        .attr('font-weight', 'bold')
+        .text(d.data.spouse.name);
+      group.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('y', 18)
+        .attr('font-size', 12)
+        .attr('fill', '#888')
+        .text(d.data.spouse.birth ? `р. ${d.data.spouse.birth}` : '');
+      // Линия между карточками
+      g.append('line')
+        .attr('x1', d.x + spouseOffset - 70)
+        .attr('y1', d.y)
+        .attr('x2', d.x - spouseOffset + 70)
+        .attr('y2', d.y)
+        .attr('stroke', '#4e73df')
+        .attr('stroke-width', 3);
+    }
+  });
+}
+
+function showInfo(d, path, branchIdx = 0) {
+  selectedNodePath = path || getNodePath(d);
+  window.selectedBranchIdx = branchIdx;
+  let data = d.data;
+  let info = data.info || {};
+  let html = `<h4>${data.name}</h4>`;
+  if (info) {
+    html += `<p><strong>Дата рождения:</strong> ${info.birth || '-'}<br>`;
+    html += `<strong>Профессия:</strong> ${info.profession || '-'}<br>`;
+    html += `<strong>Рост:</strong> ${info.height || '-'}<br>`;
+    html += `<strong>Цвет глаз:</strong> ${info.eyeColor || '-'}<br>`;
+    html += `<strong>Группа крови:</strong> ${info.blood || '-'}<br>`;
+    html += `<strong>Заболевания:</strong> ${info.diseases || '-'}<br>`;
+    html += `<strong>Биография:</strong> ${info.bio || '-'}</p>`;
+  }
+  // Карта с местом рождения и смерти + кнопки
+  html += `<div class='map-container mb-3 p-3'>
+    <div class='d-flex gap-2 mb-2'>
+      <button id='birth-btn' class='btn btn-outline-primary btn-sm' onclick='setLocationType("birth")'>Место рождения</button>
+      <button id='death-btn' class='btn btn-outline-danger btn-sm' onclick='setLocationType("death")'>Место смерти</button>
+    </div>
+    <div id='map' style='height:270px; border-radius:8px; overflow:hidden; margin-bottom:12px;'></div>
+    <form id='place-form' class='mb-2'>
+      <input type='text' class='form-control form-control-sm mb-1' id='location-address' placeholder='Адрес места'>
+      <textarea class='form-control form-control-sm mb-1' id='location-description' rows='1' placeholder='Описание'></textarea>
+      <button type='submit' class='btn btn-primary btn-sm w-100'>Сохранить место</button>
+    </form>
+  </div>`;
+  html += `<div class='mt-3 d-flex gap-2'>`;
+  html += `<button class='btn btn-outline-primary btn-sm' onclick='openEditModal()'>Редактировать</button>`;
+  html += `<button class='btn btn-outline-danger btn-sm' onclick='deleteMember()'>Удалить</button>`;
+  html += `<button class='btn btn-outline-secondary btn-sm' id='addChildBtn' data-path='${path || ''}'>Добавить потомка</button>`;
+  html += `</div>`;
+  document.getElementById('infoPanel').innerHTML = html;
+  document.getElementById('infoPanel').style.display = 'block';
+  document.getElementById('addChildBtn').onclick = function() {
+    openAddModal(this.getAttribute('data-path'));
+  };
+  setTimeout(() => initMapUI(data), 0);
+}
+
+// --- Функция для отображения информации о супруге ---
+function showSpouseInfo(d, path, branchIdx = 0) {
+  selectedNodePath = path || getNodePath(d);
+  window.selectedBranchIdx = branchIdx;
+  let data = d.data.spouse;
+  let info = data.info || {};
+  let html = `<h4>${data.name}</h4>`;
+  if (info) {
+    html += `<p><strong>Дата рождения:</strong> ${info.birth || '-'}<br>`;
+    html += `<strong>Профессия:</strong> ${info.profession || '-'}<br>`;
+    html += `<strong>Рост:</strong> ${info.height || '-'}<br>`;
+    html += `<strong>Цвет глаз:</strong> ${info.eyeColor || '-'}<br>`;
+    html += `<strong>Группа крови:</strong> ${info.blood || '-'}<br>`;
+    html += `<strong>Заболевания:</strong> ${info.diseases || '-'}<br>`;
+    html += `<strong>Биография:</strong> ${info.bio || '-'}</p>`;
+  }
+  // Карта с местом рождения и смерти + кнопки
+  html += `<div class='map-container mb-3 p-3'>
+    <div class='d-flex gap-2 mb-2'>
+      <button id='birth-btn' class='btn btn-outline-primary btn-sm' onclick='setLocationType("birth")'>Место рождения</button>
+      <button id='death-btn' class='btn btn-outline-danger btn-sm' onclick='setLocationType("death")'>Место смерти</button>
+    </div>
+    <div id='map' style='height:270px; border-radius:8px; overflow:hidden; margin-bottom:12px;'></div>
+    <form id='place-form' class='mb-2'>
+      <input type='text' class='form-control form-control-sm mb-1' id='location-address' placeholder='Адрес места'>
+      <textarea class='form-control form-control-sm mb-1' id='location-description' rows='1' placeholder='Описание'></textarea>
+      <button type='submit' class='btn btn-primary btn-sm w-100'>Сохранить место</button>
+    </form>
+  </div>`;
+  html += `<div class='mt-3 d-flex gap-2'>`;
+  html += `<button class='btn btn-outline-primary btn-sm' onclick='openEditSpouseModal()'>Редактировать</button>`;
+  html += `<button class='btn btn-outline-danger btn-sm' onclick='deleteSpouse()'>Удалить</button>`;
+  html += `</div>`;
+  document.getElementById('infoPanel').innerHTML = html;
+  document.getElementById('infoPanel').style.display = 'block';
+  setTimeout(() => initMapUI(data), 0);
+}
+
+// --- Редактирование и удаление супруга ---
+function openEditSpouseModal() {
+  const node = getNodeByPath(branches[0], selectedNodePath);
+  const spouse = node.spouse;
+  document.getElementById('memberName').value = spouse.name;
+  document.getElementById('memberRelation').value = spouse.linkLabel || '';
+  document.getElementById('memberBirth').value = spouse.info?.birth || '';
+  document.getElementById('memberProfession').value = spouse.info?.profession || '';
+  document.getElementById('memberBio').value = spouse.info?.bio || '';
+  document.getElementById('memberHeight').value = spouse.info?.height || '';
+  document.getElementById('memberEyeColor').value = spouse.info?.eyeColor || '';
+  document.getElementById('memberBlood').value = spouse.info?.blood || '';
+  document.getElementById('memberDiseases').value = spouse.info?.diseases || '';
+  document.getElementById('editNodePath').value = selectedNodePath + '.spouse';
+  document.getElementById('addToParentPath').value = '';
+  document.getElementById('addMemberModalLabel').innerText = 'Редактировать супруга';
+  var modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+  modal.show();
+}
+function deleteSpouse() {
+  if (!selectedNodePath) return;
+  if (!confirm('Удалить этого супруга/супругу?')) return;
+  const node = getNodeByPath(branches[0], selectedNodePath);
+  node.spouse = undefined;
+  document.getElementById('infoPanel').style.display = 'none';
+  renderAllBranches();
+  saveTree();
+}
+
+// --- Карта с выбором и сохранением мест рождения/смерти ---
+let currentLocationType = 'birth';
+let currentCoords = null;
+function setLocationType(type) {
+  currentLocationType = type;
+  document.getElementById('birth-btn').classList.remove('active');
+  document.getElementById('death-btn').classList.remove('active');
+  document.getElementById(`${type}-btn`).classList.add('active');
+  // Показать маркер и данные, если сохранены
+  const info = window._currentInfoNode;
+  if (!info) return;
+  if (type === 'birth' && info.birthCoords) {
+    currentCoords = info.birthCoords;
+    setMapMarker(currentCoords, '#4e73df');
+    document.getElementById('location-address').value = info.birthAddress || '';
+    document.getElementById('location-description').value = info.birthDescription || '';
+  } else if (type === 'death' && info.deathCoords) {
+    currentCoords = info.deathCoords;
+    setMapMarker(currentCoords, '#e74a3b');
+    document.getElementById('location-address').value = info.deathAddress || '';
+    document.getElementById('location-description').value = info.deathDescription || '';
+  } else {
+    currentCoords = null;
+    setMapMarker(null);
+    document.getElementById('location-address').value = '';
+    document.getElementById('location-description').value = '';
+  }
+}
+function initMapUI(nodeData) {
+  window._currentInfoNode = nodeData.info = nodeData.info || {};
+  let info = nodeData.info;
+  let map = L.map('map').setView([55.751244, 37.618423], 4);
+  window._leafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  // birth marker
+  if (info.birthCoords) {
+    L.marker(info.birthCoords, {icon: L.icon({iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [32,32], iconAnchor: [16,32]})}).addTo(map).bindPopup('Место рождения');
+    map.setView(info.birthCoords, 8);
+  }
+  // death marker
+  if (info.deathCoords) {
+    L.marker(info.deathCoords, {icon: L.icon({iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [32,32], iconAnchor: [16,32], className: 'death-marker'})}).addTo(map).bindPopup('Место смерти');
+    if (!info.birthCoords) map.setView(info.deathCoords, 8);
+  }
+  map.on('click', function(e) {
+    currentCoords = [e.latlng.lat, e.latlng.lng];
+    setMapMarker(currentCoords, currentLocationType === 'birth' ? '#4e73df' : '#e74a3b');
+  });
+  document.getElementById('birth-btn').onclick = () => setLocationType('birth');
+  document.getElementById('death-btn').onclick = () => setLocationType('death');
+  document.getElementById('place-form').onsubmit = function(e) {
+    e.preventDefault();
+    const address = document.getElementById('location-address').value;
+    const description = document.getElementById('location-description').value;
+    if (!address) { alert('Пожалуйста, введите адрес'); return; }
+    if (!currentCoords) { alert('Пожалуйста, выберите место на карте'); return; }
+    if (currentLocationType === 'birth') {
+      info.birthCoords = currentCoords;
+      info.birthAddress = address;
+      info.birthDescription = description;
+    } else {
+      info.deathCoords = currentCoords;
+      info.deathAddress = address;
+      info.deathDescription = description;
+    }
+    showToast('Место сохранено!', 'success');
+    setLocationType(currentLocationType);
+  };
+  setLocationType('birth');
+}
+function setMapMarker(coords, color) {
+  if (!window._leafletMap) return;
+  window._leafletMap.eachLayer(function(layer) {
+    if (layer instanceof L.Marker) window._leafletMap.removeLayer(layer);
+  });
+  if (coords) {
+    L.marker(coords, {icon: L.icon({iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [32,32], iconAnchor: [16,32]})}).addTo(window._leafletMap);
+    window._leafletMap.setView(coords, 8);
+  }
+}
+
+function getNodePath(d) {
+  let path = [];
+  while (d.parent) {
+    const idx = d.parent.children.indexOf(d);
+    path.unshift(idx);
+    d = d.parent;
+  }
+  return path.join('-');
+}
+
+function openAddModal(parentPath = null) {
+  document.getElementById('memberForm').reset();
+  document.getElementById('editNodePath').value = '';
+  document.getElementById('addToParentPath').value = parentPath != null ? parentPath : '';
+  document.getElementById('addMemberModalLabel').innerText = parentPath ? 'Добавить потомка' : 'Добавить члена семьи';
+  var modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+  modal.show();
+}
+
+function openEditModal() {
+  if (selectedNodePath === null || selectedNodePath === '') {
+    const node = branches[0];
+    document.getElementById('memberName').value = node.name;
+    document.getElementById('memberRelation').value = node.linkLabel || '';
+    document.getElementById('memberBirth').value = node.info?.birth || '';
+    document.getElementById('memberProfession').value = node.info?.profession || '';
+    document.getElementById('memberBio').value = node.info?.bio || '';
+    document.getElementById('memberHeight').value = node.info?.height || '';
+    document.getElementById('memberEyeColor').value = node.info?.eyeColor || '';
+    document.getElementById('memberBlood').value = node.info?.blood || '';
+    document.getElementById('memberDiseases').value = node.info?.diseases || '';
+    document.getElementById('editNodePath').value = '';
+    document.getElementById('addToParentPath').value = '';
+    document.getElementById('addMemberModalLabel').innerText = 'Редактировать основателя ветви';
+    var modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+    modal.show();
+    return;
+  }
+  const node = getNodeByPath(branches[0], selectedNodePath);
+  document.getElementById('memberName').value = node.name;
+  document.getElementById('memberRelation').value = node.linkLabel || '';
+  document.getElementById('memberBirth').value = node.info?.birth || '';
+  document.getElementById('memberProfession').value = node.info?.profession || '';
+  document.getElementById('memberBio').value = node.info?.bio || '';
+  document.getElementById('memberHeight').value = node.info?.height || '';
+  document.getElementById('memberEyeColor').value = node.info?.eyeColor || '';
+  document.getElementById('memberBlood').value = node.info?.blood || '';
+  document.getElementById('memberDiseases').value = node.info?.diseases || '';
+  document.getElementById('editNodePath').value = selectedNodePath;
+  document.getElementById('addToParentPath').value = '';
+  document.getElementById('addMemberModalLabel').innerText = 'Редактировать члена семьи';
+  var modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+  modal.show();
+}
+
+document.getElementById('memberForm').onsubmit = function(e) {
+  e.preventDefault();
+  const name = document.getElementById('memberName').value;
+  const gender = document.getElementById('memberGender').value;
+  const linkLabel = document.getElementById('memberRelation').value;
+  const birth = document.getElementById('memberBirth').value;
+  const profession = document.getElementById('memberProfession').value;
+  const bio = document.getElementById('memberBio').value;
+  const height = document.getElementById('memberHeight').value;
+  const eyeColor = document.getElementById('memberEyeColor').value;
+  const blood = document.getElementById('memberBlood').value;
+  const diseases = document.getElementById('memberDiseases').value;
+  const editPath = document.getElementById('editNodePath').value;
+  let addToParentPath = document.getElementById('addToParentPath').value;
+  if (addToParentPath === '') addToParentPath = null;
+  const info = { birth, profession, bio, height, eyeColor, blood, diseases };
+  if (editPath) {
+    if (editPath.endsWith('.spouse')) {
+      // Редактируем супруга
+      const node = getNodeByPath(branches[0], editPath.replace('.spouse',''));
+      node.spouse = node.spouse || {};
+      node.spouse.name = name;
+      node.spouse.gender = gender;
+      node.spouse.linkLabel = linkLabel;
+      node.spouse.info = info;
+    } else {
+      const node = getNodeByPath(branches[0], editPath);
+      node.name = name;
+      node.gender = gender;
+      node.linkLabel = linkLabel;
+      node.info = info;
+    }
+  } else if (addToParentPath != null) {
+    const parent = getNodeByPath(branches[0], addToParentPath);
+    if (parent) {
+      if (!parent.children) parent.children = [];
+      parent.children.push({ name, gender, linkLabel, info });
+    } else {
+      alert('Ошибка: не найден родительский узел!');
+      return;
+    }
+  } else {
+    if (!branches[0].children) branches[0].children = [];
+    branches[0].children.push({ name, gender, linkLabel, info });
+  }
+  renderAllBranches();
+  saveTree();
+  var modal = bootstrap.Modal.getInstance(document.getElementById('addMemberModal'));
+  modal.hide();
+  setTimeout(() => alert('Член семьи успешно добавлен!'), 200);
+};
+
+function getNodeByPath(root, path) {
+  if (!path || path === '') return root;
+  const idxs = path.split('-').map(Number);
+  let node = root;
+  for (let idx of idxs) {
+    if (!node.children || !node.children[idx]) return null;
+    node = node.children[idx];
+  }
+  return node;
+}
+
+function deleteMember() {
+  if (!selectedNodePath) return;
+  if (!confirm('Удалить этого члена семьи?')) return;
+  const idx = window.selectedBranchIdx || 0;
+  removeNodeByPath(branches[idx], selectedNodePath);
+  document.getElementById('infoPanel').style.display = 'none';
+  renderAllBranches();
+  saveTree();
+}
+
+function removeNodeByPath(root, path) {
+  const idxs = path.split('-').map(Number);
+  if (idxs.length === 0) return;
+  let node = root;
+  for (let i = 0; i < idxs.length - 1; i++) {
+    node = node.children[idxs[i]];
+  }
+  node.children.splice(idxs[idxs.length - 1], 1);
+}
+
+function addBranchWithPhoto(name, photoData) {
+  const newBranch = { name, photo: photoData, info: {}, children: [] };
+  branches.push(newBranch);
+  renderAllBranches();
+}
+
+// Модальное окно для добавления супруги/супруга и проверка пола
+function addSpouseModal(event, nodePath) {
+  event.stopPropagation();
+  const node = getNodeByPath(branches[0], nodePath);
+  // Показываем простое окно для ввода имени и пола
+  const modalHtml = `
+    <div class='modal fade' id='addSpouseModal' tabindex='-1'>
+      <div class='modal-dialog'>
+        <div class='modal-content'>
+          <div class='modal-header'><h5 class='modal-title'>Добавить супругу/супруга</h5>
+            <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+          </div>
+          <div class='modal-body'>
+            <form id='spouseForm'>
+              <div class='mb-3'>
+                <label class='form-label'>Имя</label>
+                <input type='text' class='form-control' id='spouseName' required>
+              </div>
+              <div class='mb-3'>
+                <label class='form-label'>Пол</label>
+                <select class='form-select' id='spouseGender' required>
+                  <option value='male'>Мужской</option>
+                  <option value='female'>Женский</option>
+                </select>
+              </div>
+              <button type='submit' class='btn btn-primary w-100'>Добавить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  let modalDiv = document.createElement('div');
+  modalDiv.innerHTML = modalHtml;
+  document.body.appendChild(modalDiv);
+  var modal = new bootstrap.Modal(modalDiv.querySelector('#addSpouseModal'));
+  modal.show();
+  modalDiv.querySelector('#spouseForm').onsubmit = function(e) {
+    e.preventDefault();
+    const spouseName = modalDiv.querySelector('#spouseName').value;
+    const spouseGender = modalDiv.querySelector('#spouseGender').value;
+    // Проверка на однополый брак
+    if (node.gender && node.gender === spouseGender) {
+      showFamilyCodeModal();
+      return;
+    }
+    node.spouse = { name: spouseName, gender: spouseGender };
+    renderAllBranches();
+    modal.hide();
+    setTimeout(() => document.body.removeChild(modalDiv), 500);
+  };
+}
+// Модалка с Семейным кодексом РФ
+function showFamilyCodeModal() {
+  const codeText = `<b>Семейный кодекс РФ, статья 14:</b><br>Не допускается заключение брака между лицами одного пола.`;
+  const modalHtml = `
+    <div class='modal fade' id='familyCodeModal' tabindex='-1'>
+      <div class='modal-dialog'>
+        <div class='modal-content'>
+          <div class='modal-header'><h5 class='modal-title'>Ошибка</h5>
+            <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+          </div>
+          <div class='modal-body'>
+            <div class='alert alert-danger'>${codeText}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  let modalDiv = document.createElement('div');
+  modalDiv.innerHTML = modalHtml;
+  document.body.appendChild(modalDiv);
+  var modal = new bootstrap.Modal(modalDiv.querySelector('#familyCodeModal'));
+  modal.show();
+  setTimeout(() => document.body.removeChild(modalDiv), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTree();
+});
+// --- Конец полного JS-кода семейного древа ---
+
+// Добавить кнопку для выравнивания
+const alignBtnHtml = `<button class='btn btn-secondary mb-3' id='alignTreeBtn'>Выровнять</button>`;
+const treeContainer = document.getElementById('tree-container');
+if (!document.getElementById('alignTreeBtn')) {
+  treeContainer.insertAdjacentHTML('beforebegin', alignBtnHtml);
+}
+document.getElementById('alignTreeBtn').onclick = function() {
+  // Сбросить все offset
+  function resetOffsets(node) {
+    if (node.offset) delete node.offset;
+    if (node.children) node.children.forEach(resetOffsets);
+    if (node.spouse && node.spouse.children) node.spouse.children.forEach(resetOffsets);
+  }
+  branches.forEach(resetOffsets);
+  renderAllBranches();
+};
+
+function createNewBranch() {
+  // Открыть модалку для ввода имени и пола основателя ветви
+  const modalHtml = `
+    <div class='modal fade' id='newBranchModal' tabindex='-1'>
+      <div class='modal-dialog'>
+        <div class='modal-content'>
+          <div class='modal-header'><h5 class='modal-title'>Создать новую ветвь</h5>
+            <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+          </div>
+          <div class='modal-body'>
+            <form id='newBranchForm'>
+              <div class='mb-3'>
+                <label class='form-label'>Имя основателя</label>
+                <input type='text' class='form-control' id='newBranchName' required>
+              </div>
+              <div class='mb-3'>
+                <label class='form-label'>Пол</label>
+                <select class='form-select' id='newBranchGender' required>
+                  <option value='male'>Мужской</option>
+                  <option value='female'>Женский</option>
+                </select>
+              </div>
+              <button type='submit' class='btn btn-success w-100'>Создать ветвь</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  let modalDiv = document.createElement('div');
+  modalDiv.innerHTML = modalHtml;
+  document.body.appendChild(modalDiv);
+  var modal = new bootstrap.Modal(modalDiv.querySelector('#newBranchModal'));
+  modal.show();
+  modalDiv.querySelector('#newBranchForm').onsubmit = function(e) {
+    e.preventDefault();
+    const name = modalDiv.querySelector('#newBranchName').value;
+    const gender = modalDiv.querySelector('#newBranchGender').value;
+    branches.push({ name, gender, children: [] });
+    renderAllBranches();
+    saveTree();
+    modal.hide();
+    setTimeout(() => document.body.removeChild(modalDiv), 500);
+  };
+}
+
+function openMergeModal() {
+  // Открыть модалку для выбора двух основателей ветвей и типа связи
+  if (branches.length < 2) {
+    alert('Должно быть хотя бы две ветви для объединения!');
+    return;
+  }
+  const modalHtml = `
+    <div class='modal fade' id='mergeBranchesModal' tabindex='-1'>
+      <div class='modal-dialog'>
+        <div class='modal-content'>
+          <div class='modal-header'><h5 class='modal-title'>Объединить ветви</h5>
+            <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+          </div>
+          <div class='modal-body'>
+            <form id='mergeForm'>
+              <div class='mb-3'>
+                <label class='form-label'>Выберите первого основателя</label>
+                <select class='form-select' id='mergeMember1'>
+                  ${branches.map((b,i)=>`<option value='${i}'>${b.name}</option>`).join('')}
+                </select>
+              </div>
+              <div class='mb-3'>
+                <label class='form-label'>Выберите второго основателя</label>
+                <select class='form-select' id='mergeMember2'>
+                  ${branches.map((b,i)=>`<option value='${i}'>${b.name}</option>`).join('')}
+                </select>
+              </div>
+              <div class='mb-3'>
+                <label class='form-label'>Тип связи</label>
+                <select class='form-select' id='mergeType'>
+                  <option value='spouse'>Супруги</option>
+                  <option value='parent'>Родитель/ребёнок</option>
+                </select>
+              </div>
+              <button type='submit' class='btn btn-warning w-100'>Объединить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  let modalDiv = document.createElement('div');
+  modalDiv.innerHTML = modalHtml;
+  document.body.appendChild(modalDiv);
+  var modal = new bootstrap.Modal(modalDiv.querySelector('#mergeBranchesModal'));
+  modal.show();
+  modalDiv.querySelector('#mergeForm').onsubmit = function(e) {
+    e.preventDefault();
+    const idx1 = +modalDiv.querySelector('#mergeMember1').value;
+    const idx2 = +modalDiv.querySelector('#mergeMember2').value;
+    if (idx1 === idx2) { alert('Выберите разных основателей!'); return; }
+    const type = modalDiv.querySelector('#mergeType').value;
+    // Супруги: делаем их супругами друг другу
+    if (type === 'spouse') {
+      if (branches[idx1].gender === branches[idx2].gender) {
+        showFamilyCodeModal();
+        return;
+      }
+      branches[idx1].spouse = branches[idx2];
+      // Переносим детей
+      if (branches[idx2].children && branches[idx2].children.length) {
+        if (!branches[idx1].children) branches[idx1].children = [];
+        branches[idx1].children = branches[idx1].children.concat(branches[idx2].children);
+      }
+      // Удаляем вторую ветвь
+      branches.splice(idx2, 1);
+    } else if (type === 'parent') {
+      // Родитель/ребёнок: делаем одного ребёнком другого
+      branches[idx1].children = branches[idx1].children || [];
+      branches[idx1].children.push(branches[idx2]);
+      branches.splice(idx2, 1);
+    }
+    renderAllBranches();
+    saveTree();
+    modal.hide();
+    setTimeout(() => document.body.removeChild(modalDiv), 500);
+  };
+}
+</script>
+{% endblock %}

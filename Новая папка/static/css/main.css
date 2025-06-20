@@ -1,0 +1,12 @@
+body { background: #f7f7f7; font-family: Arial, sans-serif; }
+.btn-primary, .btn-outline-primary { border-radius: 8px; font-weight: 500; }
+.btn-primary { background: #2563eb; border: none; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-outline-primary { color: #2563eb; border: 1.5px solid #2563eb; }
+.btn-outline-primary:hover { background: #2563eb; color: #fff; }
+input, textarea, select { border-radius: 8px !important; }
+.navbar { background: #1a2235 !important; }
+footer { background: #1a2235; color: #fff; }
+footer a.text-white { color: #fff !important; }
+.profile-avatar { box-shadow: 0 2px 8px #ccc; }
+.alert { border-radius: 8px; } 

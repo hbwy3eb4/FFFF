@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Главная — Семейное древо{% endblock %}
+{% block content %}
+<section class="hero-section text-center py-5" style="background: linear-gradient(90deg, #2e4374 0%, #4e73df 100%); color: #fff;">
+    <div class="container">
+        <div class="row justify-content-center align-items-center">
+                <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-4" style="text-shadow:0 2px 8px #22336655;">Сохраните историю вашей семьи для будущих поколений</h1>
+                <p class="lead mb-5" style="opacity:.95;">Создайте цифровой архив фотографий, документов и воспоминаний. Постройте генеалогическое древо и делитесь семейной историей с родными.</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="/register/" class="btn btn-primary btn-lg px-4 py-3 shadow-sm" style="border-radius: 30px; font-weight: 500; letter-spacing: .5px;">Начать бесплатно</a>
+                    <a href="/features/" class="btn btn-outline-light btn-lg px-4 py-3 shadow-sm" style="border-radius: 30px; font-weight: 500;">Узнать больше</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+<section class="family-tree-preview py-5" style="background: #f8f9fc;">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                <div class="p-4 rounded-4 shadow-sm bg-white h-100">
+                  <h2 class="fw-bold mb-4" style="color:#2e4374;">Создайте ваше семейное древо за минуты</h2>
+                  <p class="mb-3">Наш интуитивный конструктор поможет быстро построить генеалогическое древо любой сложности. Просто добавляйте родственников и указывайте связи между ними.</p>
+                  <ul class="list-unstyled mb-4">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Автоматическое построение связей</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Интеграция с историческими архивами</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Экспорт в PDF и GEDCOM</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Публикация и совместный доступ</li>
+                    </ul>
+                  <a href="/family-tree/" class="btn btn-outline-primary px-4 py-2" style="border-radius: 24px; font-weight: 500;">Попробовать конструктор</a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <img src="https://image.winudf.com/v2_image/Y29tLm1vZWdlbmVhbG9naWNoZXNrb2VkcmV2by5hcHBfc2NyZWVuXzBfMTUzMzM2OTg5OF8wNzE/screen-0.jpg?h=800&fakeurl=1&type=.jpg" alt="Пример семейного древа" class="img-fluid rounded-4 shadow-lg border" style="max-width: 420px; background: #fff; padding: 8px;">
+            </div>
+            </div>
+        </div>
+    </section>
+<section class="cta-section text-center py-5" style="background: linear-gradient(90deg, #4e73df 0%, #2e4374 100%); color: #fff;">
+        <div class="container">
+        <h2 class="display-5 fw-bold mb-4" style="text-shadow:0 2px 8px #22336655;">Начните сохранять вашу семейную историю сегодня</h2>
+        <p class="lead mb-5" style="opacity:.95;">Присоединяйтесь к тысячам семей, которые уже создали свои цифровые архивы</p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/register/" class="btn btn-light btn-lg px-5 py-3 shadow-sm" style="border-radius: 30px; font-weight: 500; color:#2e4374;">Бесплатная регистрация</a>
+            <a href="#" class="btn btn-outline-light btn-lg px-5 py-3 shadow-sm" style="border-radius: 30px; font-weight: 500;">Посмотреть тарифы</a>
+        </div>
+    </div>
+</section>
+<style>
+.hero-section, .cta-section { transition: background 0.5s; }
+.family-tree-preview { transition: background 0.5s; }
+.img-fluid { transition: box-shadow 0.3s, border-radius 0.3s; }
+.img-fluid:hover { box-shadow: 0 8px 32px #2e437488; border-radius: 32px; }
+@media (max-width: 767px) {
+  .img-fluid { max-width: 95vw; margin: 0 auto; }
+  .hero-section h1, .cta-section h2 { font-size: 2rem; }
+}
+</style>
+{% endblock %}
